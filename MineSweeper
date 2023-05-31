@@ -6,14 +6,14 @@
 
 using namespace std;
 
-const int gz_size = 25;
+const int gz_size = 25;  //定义格子大小
 
 
 class MineSweeper { //扫雷类
 private:
 	int **M;//存储周围雷个数
 	int **flag;//格子状态
-	int row, col, num; //游戏中方块的行数、列数以及地雷数，由于窗口大小限制，行数不超过40行，列数不超过76行，故雷数不超过3040个
+	int row, col, num; //游戏中格子的行数、列数以及地雷数，由于窗口大小限制，行数不超过40行，列数不超过76行，故雷数不超过3040个
 	int sign_num;//待标记雷数
 	bool is_auto;//判断是否开启自动标记
 	bool is_over;  //定义判断游戏是否结束的bool量，默认为false（未结束）
@@ -44,13 +44,13 @@ public:
 	void Sign(const int&, const int&); //标记选中方块；取消标记；点击数字时与Open()相同
 	//	void Loop();//单局游戏主循环
 	void run();//游戏运行函数
-	void Display();
-	void click();
-	void click_first();
-	void Calc();
+	void Display(); //调用后显示所有位置对应的图片
+	void click();//点击函数，获取鼠标左右键点击时的坐标
+	void click_first();//获取鼠标左键第一次点击时的坐标
+	void Calc();//计算非雷格子周围的雷数，将结果存储在二维M数组里
 	void Generate(int ,int );//自动种雷
-	void Show();
-	void input();//输入参数
+	void Show();//在控制台显示检查计算是否正确，为雷打印*，数字（1-8）打印数字，0打印空格
+	void input();//输入行数，列数，雷数进行难度选择
 };
 //静态数据成员类外初始化
 int MineSweeper::count = 0;
@@ -322,68 +322,73 @@ void MineSweeper:: click_first(){
 }
 
 
-void MineSweeper::Open(const int &x,const int &y){
-	if (!((y < 1 || y > row) || (x < 0 || x > col))) { //鼠标点击的范围必须在窗口内
-		if(flag[y][x]==-1){
-			putimage(x*25,y*25,img_gz);//撤销旗子，恢复格子
-			flag[y][x]=0;
+
+void MineSweeper::Open(const int &x, const int &y)
+{
+	// 添加判断语句，如果点击的是地图范围内的位置
+	if (!((y < 1 || y > row) || (x < 0 || x > col))) {
+		if (flag[y][x] == -1) {
+			putimage(x * 25, y * 25, img_gz); // 撤销旗子，恢复格子
+			flag[y][x] = 0;
+			return;
 		}
-		if (flag[y][x]==0) {     //若格子未打开，则使其变为打开状态
+		if (flag[y][x] == 0) {
 			flag[y][x] = 1;
-			if (M[y-1][x] == 9) { //若点击的格子是雷，则判断为踩雷
+			if (M[y - 1][x] == 9) {
 				putimage(x * 25, y * 25, img_boom);
 				for (int j = 0; j < row; j++) {
 					for (int i = 0; i < col; i++) {
-						if (j == y-1 && i == x)
+						if (j == y - 1 && i == x)
 							continue;
-						flag[j+1][i] = 1;   //使所有格子处于打开状态，不可再被打开
+						flag[j + 1][i] = 1;
 						if (M[j][i] == 9) {
-							putimage(i * 25, j * 25+25, img_mine); //显示出所有雷的位置
+							putimage(i * 25, j * 25 + 25, img_mine);
 						}
 					}
 				}
-				is_over=true;   //游戏状态——结束
-			} else if (M[y-1][x] != 0) {  //若格子使非雷且不是空格，则首先计数自增，并且打开该格子，贴出对应数字的图片
+				is_over = true;
+			} else if (M[y - 1][x] != 0) {
 				count++;
-				cout << count << endl;
-				putimage(x * 25, y * 25, img_number[M[y-1][x]]);
-				//判断是否通关，通关使所有雷的位置也显示出来
-				if (count > row*col-num-1) {
+				cout<<count<<endl;
+				putimage(x * 25, y * 25, img_number[M[y - 1][x]]);
+				if (count > row * col - num - 1) {
 					for (int j = 0; j < row; j++) {
 						for (int i = 0; i < col; i++) {
-							flag[j+1][i] =1;
+							flag[j + 1][i] = 1;
 							if (M[j][i] == 9)
-								putimage(i * 25, j * 25+25, img_mine);
+								putimage(i * 25, j * 25 + 25, img_mine);
 						}
 					}
-					is_over=true;   //游戏状态结束
-					is_win=true;    //通关
+					is_over = true;
+					is_win = true;
 				}
-				return;  //遇到数字格子不再使用种子填充算法打开周围格子
+				
+				return ;
 			} else {
-				//若为空格，则使用种子填充算法打开其周围的格子，遇到数字停。
 				count++;
-				cout << count << endl;
+				cout<<count<<endl;
 				putimage(x * 25, y * 25, img_number[0]);
+				flag[y][x] = 1;
+				// 对周围格子进行判断，如果不是雷和已经打开的空白格，继续递归打开
 				Open(x - 1, y);
-				Open(x - 1, y-1);
-				Open(x , y-1);
-				Open(x+1, y - 1);
-				Open(x+1, y);
-				Open(x + 1, y+ 1);
-				Open( x, y+1);
-				Open(x-1, y + 1);
+				Open(x - 1, y - 1);
+				Open(x, y - 1);
+				Open(x + 1, y - 1);
+				Open(x + 1, y);
+				Open(x + 1, y + 1);
+				Open(x, y + 1);
+				Open(x - 1, y + 1);
 				//同样需要判断一次是否通关
-				if (count > row*col-num-1) {
+				if (count > row * col - num - 1) {
 					for (int j = 0; j < row; j++) {
 						for (int i = 0; i < col; i++) {
-							flag[j+1][i] =1;
+							flag[j + 1][i] = 1;
 							if (M[j][i] == 9)
-								putimage(i * 25, j * 25+25, img_mine);
+								putimage(i * 25, j * 25 + 25, img_mine);
 						}
 					}
-					is_over=true;   //游戏状态结束
-					is_win=true;    //通关
+					is_over = true;   //游戏状态结束
+					is_win = true;    //通关
 				}
 			}
 		}
